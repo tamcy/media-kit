@@ -29,7 +29,7 @@ topics:
   - cross-platform
 
 environment:
-  sdk: ">=3.1.0 <4.0.0"
+  sdk: ">=3.3.0 <4.0.0"
 
 dependencies:
   collection: ^1.17.0

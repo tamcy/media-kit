@@ -17,6 +17,7 @@ import 'package:synchronized/synchronized.dart';
 import 'package:media_kit/src/player/platform_player.dart';
 
 import 'package:media_kit/src/player/web/utils/hls.dart';
+import 'package:media_kit/src/player/web/utils/mpeg_ts.dart';
 import 'package:media_kit/src/player/web/utils/duration.dart';
 
 import 'package:media_kit/src/models/track.dart';
@@ -56,7 +57,7 @@ class WebPlayer extends PlatformPlayer {
         // Do not add autoplay=false attribute: https://stackoverflow.com/a/19664804/12825435
         /* ..autoplay = false */
         ..controls = false
-        ..muted = test
+        ..muted = test || configuration.muted
         ..style.width = '100%'
         ..style.height = '100%'
         ..style.border = 'none'
@@ -1459,7 +1460,30 @@ class WebPlayer extends PlatformPlayer {
 
   void _loadSource(Media media) {
     try {
-      if (_isHLS(media.uri)) {
+      if (media.extras?.containsKey('mpegts') ?? false) {
+        final options = media.extras?['mpegts'];
+        if (options is! Map) {
+          throw ArgumentError.value(
+            options,
+            'options',
+            'Invalid MPEG-TS options',
+          );
+        }
+
+        var isMseLivePlaybackSupported = mpegts.getFeatureList().mseLivePlayback;
+        if (isMseLivePlaybackSupported) {
+          var dataSource = MediaDataSource(
+            type: options['type'],
+            isLive: options['isLive'] ?? false,
+            enableStashBuffer: options['enableStashBuffer'] ?? false,
+            url: media.uri,
+          );
+
+          var player = mpegts.createPlayer(dataSource);
+          player.attachMediaElement(element);
+          player.load();
+        }
+      } else if (_isHLS(media.uri)) {
         void setHlsHTTPHeaders(web.XMLHttpRequest xhr, String url) {
           for (final header in media.httpHeaders!.entries) {
             xhr.setRequestHeader(header.key, header.value);
